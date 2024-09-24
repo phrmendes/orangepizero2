@@ -28,13 +28,10 @@ services:
     container_name: syncthing
     restart: unless-stopped
     environment:
-      - PGID=1000
-      - PUID=1000
       - TZ=America/Sao_Paulo
-      - UMASK=022
     volumes:
       - ~/syncthing/config:/config
-      - syncthing:/data
+      - ~/syncthing/data:/data
     ports:
       - 22000:22000
       - 21027:21027/udp
@@ -44,15 +41,9 @@ services:
     container_name: duplicati
     restart: unless-stopped
     environment:
-      - PUID=1000
-      - PGID=1000
       - TZ=America/Sao_Paulo
     volumes:
       - ~/duplicati/config:/config
       - ~/duplicati/backups:/backups
       - ~/duplicati/source:/source
-      - syncthing:/data
-
-volumes:
-  syncthing:
-    driver: local
+      - ~/syncthing/data:/data

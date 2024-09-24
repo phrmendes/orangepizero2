@@ -76,7 +76,7 @@
           ansible.builtin.file:
             path: "{{ item }}"
             state: directory
-            mode: "0755"
+            mode: "0766"
             recurse: true
             owner: "{{ ansible_user }}"
             group: "{{ ansible_user }}"
@@ -90,6 +90,7 @@
             - /home/{{ ansible_user }}/nginx/data
             - /home/{{ ansible_user }}/nginx/letsencrypt
             - /home/{{ ansible_user }}/syncthing/config
+            - /home/{{ ansible_user }}/syncthing/data
 
         - name: Copy files
           ansible.builtin.copy:
@@ -132,5 +133,5 @@
 
         - name: Docker compose up!
           community.docker.docker_compose_v2:
-            project_src: /home/{{ ansible_user }}
+            project_src: /home/{{ ansible_user }}/compose
             state: present
