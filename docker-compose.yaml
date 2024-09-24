@@ -34,7 +34,7 @@ services:
       - UMASK=022
     volumes:
       - ~/syncthing/config:/config
-      - ~/syncthing/data:/data
+      - syncthing:/data
     ports:
       - 22000:22000
       - 21027:21027/udp
@@ -51,3 +51,8 @@ services:
       - ~/duplicati/config:/config
       - ~/duplicati/backups:/backups
       - ~/duplicati/source:/source
+      - syncthing:/data
+
+volumes:
+  syncthing:
+    driver: local
