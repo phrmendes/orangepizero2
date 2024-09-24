@@ -1,0 +1,136 @@
+---
+- name: Configure orangepizero2
+  hosts: all
+  vars:
+    ansible_user: phrmendes
+    ansible_become_user: root
+  vars_files:
+    - secrets.yaml
+
+  roles:
+    - role: geerlingguy.docker
+      become: true
+      vars:
+        docker_install_compose_plugin: true
+        docker_packages_state: present
+        docker_users:
+          - "{{ ansible_user }}"
+
+    - role: artis3n.tailscale
+      become: true
+      vars:
+        tailscale_authkey: "{{ ts_authkey }}"
+
+  tasks:
+    - name: Firewall settings
+      become: true
+      block:
+        - name: Install UFW
+          ansible.builtin.apt:
+            name: ufw
+            state: present
+
+        - name: Deny all incoming connections by default
+          community.general.ufw:
+            default: deny
+            direction: incoming
+
+        - name: Allow all outcoming connections by default
+          community.general.ufw:
+            default: allow
+            direction: outgoing
+
+        - name: Allow OpenSSH
+          community.general.ufw:
+            rule: allow
+            name: OpenSSH
+
+        - name: Allow ports (TCP)
+          community.general.ufw:
+            rule: allow
+            port: "{{ item }}"
+            proto: tcp
+          with_items:
+            - 53
+            - 80
+            - 81
+            - 443
+            - 8080
+            - 8081
+            - 22000
+
+        - name: Allow ports (UDP)
+          community.general.ufw:
+            rule: allow
+            port: "{{ item }}"
+            proto: udp
+          with_items:
+            - 53
+            - 21027
+
+    - name: File operations
+      become: true
+      become_user: "{{ ansible_user }}"
+      block:
+        - name: Create directories
+          ansible.builtin.file:
+            path: "{{ item }}"
+            state: directory
+            mode: "0755"
+            recurse: true
+            owner: "{{ ansible_user }}"
+            group: "{{ ansible_user }}"
+          with_items:
+            - /home/{{ ansible_user }}/adguard/conf
+            - /home/{{ ansible_user }}/adguard/work
+            - /home/{{ ansible_user }}/compose
+            - /home/{{ ansible_user }}/duplicati/backups
+            - /home/{{ ansible_user }}/duplicati/config
+            - /home/{{ ansible_user }}/duplicati/source
+            - /home/{{ ansible_user }}/nginx/data
+            - /home/{{ ansible_user }}/nginx/letsencrypt
+            - /home/{{ ansible_user }}/syncthing/config
+
+        - name: Copy files
+          ansible.builtin.copy:
+            src: "{{ item.src }}"
+            dest: "{{ item.dest }}"
+            mode: "0755"
+            owner: "{{ ansible_user }}"
+            group: "{{ ansible_user }}"
+          with_items:
+            - src: ./docker-compose.yaml
+              dest: /home/{{ ansible_user }}/compose/docker-compose.yaml
+
+        - name: Create .env file
+          ansible.builtin.copy:
+            mode: "0755"
+            owner: "{{ ansible_user }}"
+            group: "{{ ansible_user }}"
+            dest: /home/{{ ansible_user }}/compose/.env
+            content: |
+              DOMAIN=local.ohlongjohnson.live
+              NAMECOM_API_TOKEN={{ namedotcom_api_token }}
+              NAMECOM_SERVER=https://api.name.com
+              NAMECOM_USERNAME=phrmendes
+              PIHOLE_WEBPASSWORD={{ pihole_password }}
+
+    - name: Docker stuff
+      block:
+        - name: Install dependencies
+          become: true
+          ansible.builtin.apt:
+            pkg:
+              - python3-requests
+              - python3-yaml
+
+        - name: Uninstall dnsmasq
+          become: true
+          ansible.builtin.apt:
+            name: dnsmasq
+            state: absent
+
+        - name: Docker compose up!
+          community.docker.docker_compose_v2:
+            project_src: /home/{{ ansible_user }}
+            state: present

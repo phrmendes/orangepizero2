@@ -1,0 +1,53 @@
+---
+services:
+  nginxproxymanager:
+    image: jc21/nginx-proxy-manager:latest
+    container_name: nginxproxymanager
+    restart: unless-stopped
+    ports:
+      - 80:80
+      - 81:81
+      - 443:443
+    volumes:
+      - ~/nginx/data:/data
+      - ~/nginx/letsencrypt:/etc/letsencrypt
+
+  adguardhome:
+    image: docker.io/adguard/adguardhome:latest
+    container_name: adguardhome
+    volumes:
+      - ~/adguard/conf:/opt/adguardhome/conf
+      - ~/adguard/work:/opt/adguardhome/work
+    ports:
+      - 53:53
+      - 53:53/udp
+    restart: unless-stopped
+
+  syncthing:
+    image: lscr.io/linuxserver/syncthing:latest
+    container_name: syncthing
+    restart: unless-stopped
+    environment:
+      - PGID=1000
+      - PUID=1000
+      - TZ=America/Sao_Paulo
+      - UMASK=022
+    volumes:
+      - ~/syncthing/config:/config
+      - ~/syncthing/data:/data
+    ports:
+      - 22000:22000
+      - 21027:21027/udp
+
+  duplicati:
+    image: lscr.io/linuxserver/duplicati:latest
+    container_name: duplicati
+    restart: unless-stopped
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Sao_Paulo
+    volumes:
+      - ~/duplicati/config:/config
+      - ~/duplicati/backups:/backups
+      - ~/duplicati/source:/source
