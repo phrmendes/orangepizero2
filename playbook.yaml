@@ -1,6 +1,7 @@
 ---
 - name: Configure orangepizero2
   hosts: all
+  become: true
   vars:
     ansible_user: phrmendes
     ansible_become_user: root
@@ -9,7 +10,6 @@
 
   roles:
     - role: geerlingguy.docker
-      become: true
       vars:
         docker_install_compose_plugin: true
         docker_packages_state: present
@@ -17,121 +17,126 @@
           - "{{ ansible_user }}"
 
     - role: artis3n.tailscale
-      become: true
       vars:
         tailscale_authkey: "{{ ts_authkey }}"
 
   tasks:
+    - name: Add user tool configurations
+      tags: tools
+      ansible.builtin.copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        mode: "0644"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+      loop:
+        - src: ./init.vim
+          dest: /home/{{ ansible_user }}/.vimrc
+        - src: ./tmux.conf
+          dest: /home/{{ ansible_user }}/.tmux.conf
+
     - name: Firewall settings
-      become: true
+      tags: firewall
       block:
-        - name: Install UFW
+        - name: Install UFW firewall
           ansible.builtin.apt:
             name: ufw
             state: present
 
-        - name: Deny all incoming connections by default
+        - name: Set default UFW policies
           community.general.ufw:
-            default: deny
-            direction: incoming
+            default: "{{ item.policy }}"
+            direction: "{{ item.direction }}"
+          loop:
+            - { policy: deny, direction: incoming }
+            - { policy: allow, direction: outgoing }
 
-        - name: Allow all outcoming connections by default
-          community.general.ufw:
-            default: allow
-            direction: outgoing
-
-        - name: Allow OpenSSH
+        - name: Allow OpenSSH for remote access
           community.general.ufw:
             rule: allow
             name: OpenSSH
 
-        - name: Allow ports (TCP)
+        - name: Allow necessary TCP ports
           community.general.ufw:
             rule: allow
             port: "{{ item }}"
             proto: tcp
-          with_items:
-            - 53
-            - 80
-            - 81
-            - 443
-            - 8080
-            - 8081
-            - 22000
+          loop: [53, 80, 8080, 22000]
 
-        - name: Allow ports (UDP)
+        - name: Allow necessary UDP ports
           community.general.ufw:
             rule: allow
             port: "{{ item }}"
             proto: udp
-          with_items:
-            - 53
-            - 21027
+          loop: [53, 21027]
 
-    - name: File operations
+    - name: Set up required directories and files
+      tags: file_setup
       become: true
       become_user: "{{ ansible_user }}"
       block:
-        - name: Create directories
+        - name: Create necessary directories with permissions
           ansible.builtin.file:
-            path: "{{ item }}"
+            path: "{{ item.path }}"
             state: directory
-            mode: "0766"
-            recurse: true
+            mode: "{{ item.mode | default('0666') }}"
             owner: "{{ ansible_user }}"
             group: "{{ ansible_user }}"
-          with_items:
-            - /home/{{ ansible_user }}/adguard/conf
-            - /home/{{ ansible_user }}/adguard/work
-            - /home/{{ ansible_user }}/compose
-            - /home/{{ ansible_user }}/duplicati/backups
-            - /home/{{ ansible_user }}/duplicati/config
-            - /home/{{ ansible_user }}/duplicati/source
-            - /home/{{ ansible_user }}/nginx/data
-            - /home/{{ ansible_user }}/nginx/letsencrypt
-            - /home/{{ ansible_user }}/syncthing/config
-            - /home/{{ ansible_user }}/syncthing/data
+          loop:
+            - path: /home/{{ ansible_user }}/adguard/conf
+            - path: /home/{{ ansible_user }}/adguard/work
+            - path: /home/{{ ansible_user }}/compose
+            - path: /home/{{ ansible_user }}/duplicati/backups
+            - path: /home/{{ ansible_user }}/duplicati/config
+            - path: /home/{{ ansible_user }}/duplicati/source
+            - path: /home/{{ ansible_user }}/nginx/data
+            - path: /home/{{ ansible_user }}/nginx/letsencrypt
+              mode: "0744"
+            - path: /home/{{ ansible_user }}/syncthing/config
+            - path: /home/{{ ansible_user }}/syncthing/data
 
-        - name: Copy files
+        - name: Copy AdGuardHome configuration
+          ansible.builtin.template:
+            src: ./AdGuardHome.yaml.j2
+            dest: /home/{{ ansible_user }}/adguard/conf/AdGuardHome.yaml
+            mode: "0666"
+            owner: "{{ ansible_user }}"
+            group: "{{ ansible_user }}"
+
+        - name: Deploy Docker Compose configuration
           ansible.builtin.copy:
-            src: "{{ item.src }}"
-            dest: "{{ item.dest }}"
-            mode: "0755"
+            src: ./docker-compose.yaml
+            dest: /home/{{ ansible_user }}/compose/docker-compose.yaml
+            mode: "0666"
             owner: "{{ ansible_user }}"
             group: "{{ ansible_user }}"
-          with_items:
-            - src: ./docker-compose.yaml
-              dest: /home/{{ ansible_user }}/compose/docker-compose.yaml
+          notify: Restart Docker containers
 
-        - name: Create .env file
-          ansible.builtin.copy:
-            mode: "0755"
-            owner: "{{ ansible_user }}"
-            group: "{{ ansible_user }}"
-            dest: /home/{{ ansible_user }}/compose/.env
-            content: |
-              DOMAIN=local.ohlongjohnson.live
-              NAMECOM_API_TOKEN={{ namedotcom_api_token }}
-              NAMECOM_SERVER=https://api.name.com
-              NAMECOM_USERNAME=phrmendes
-              PIHOLE_WEBPASSWORD={{ pihole_password }}
-
-    - name: Docker stuff
+    - name: Docker setup
+      tags: docker
       block:
-        - name: Install dependencies
-          become: true
+        - name: Install Python dependencies for Docker management
           ansible.builtin.apt:
-            pkg:
+            name:
               - python3-requests
               - python3-yaml
+            state: present
 
-        - name: Uninstall dnsmasq
-          become: true
+        - name: Remove dnsmasq to prevent conflicts
           ansible.builtin.apt:
             name: dnsmasq
             state: absent
 
-        - name: Docker compose up!
+        - name: Run Docker Compose to launch services
           community.docker.docker_compose_v2:
             project_src: /home/{{ ansible_user }}/compose
             state: present
+          environment:
+            CLOUDFLARE_TOKEN: "{{ cloudflare_token }}"
+            SB_USER: "{{ ansible_user }}:{{ silverbullet_password }}"
+
+  handlers:
+    - name: Restart Docker containers
+      ansible.builtin.service:
+        name: docker
+        state: restarted
