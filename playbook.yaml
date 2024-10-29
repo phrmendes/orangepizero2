@@ -131,9 +131,6 @@
           community.docker.docker_compose_v2:
             project_src: /home/{{ ansible_user }}/compose
             state: present
-          environment:
-            CLOUDFLARE_TOKEN: "{{ cloudflare_token }}"
-            SB_USER: "{{ ansible_user }}:{{ silverbullet_password }}"
 
   handlers:
     - name: Restart Docker containers

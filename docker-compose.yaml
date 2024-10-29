@@ -12,15 +12,6 @@ services:
       - ~/nginx/data:/data
       - ~/nginx/letsencrypt:/etc/letsencrypt
 
-  cloudflared:
-    image: cloudflare/cloudflared
-    container_name: cloudflared
-    command: ["tunnel", "--no-autoupdate", "run"]
-    environment:
-      TUNNEL_TOKEN: ${CLOUDFLARE_TOKEN}
-    networks:
-      - silverbullet
-
   adguardhome:
     image: adguard/adguardhome
     container_name: adguardhome
@@ -60,25 +51,9 @@ services:
       - ~/duplicati/backups:/backups
       - ~/duplicati/source:/source
       - ~/syncthing/data:/data/syncthing
-      - ~/silverbullet/space:/data/silverbullet
-
-  silverbullet:
-    image: zefhemel/silverbullet
-    container_name: silverbullet
-    restart: unless-stopped
-    environment:
-      SB_USER: ${SB_USER}
-    volumes:
-      - ~/syncthing/data/notes:/space
-    networks:
-      - silverbullet
 
   watchtower:
     image: containrrr/watchtower
     container_name: watchtower
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-
-networks:
-  silverbullet:
-    driver: bridge
