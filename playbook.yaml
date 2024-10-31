@@ -10,6 +10,7 @@
 
   roles:
     - role: geerlingguy.docker
+      tags: docker
       vars:
         docker_install_compose_plugin: true
         docker_packages_state: present
@@ -17,6 +18,7 @@
           - "{{ ansible_user }}"
 
     - role: artis3n.tailscale
+      tags: tailscale
       vars:
         tailscale_authkey: "{{ ts_authkey }}"
 
@@ -70,50 +72,8 @@
             proto: udp
           loop: [53, 21027]
 
-    - name: Set up required directories and files
-      tags: file_setup
-      become: true
-      become_user: "{{ ansible_user }}"
-      block:
-        - name: Create necessary directories with permissions
-          ansible.builtin.file:
-            path: "{{ item.path }}"
-            state: directory
-            mode: "{{ item.mode | default('0666') }}"
-            owner: "{{ ansible_user }}"
-            group: "{{ ansible_user }}"
-          loop:
-            - path: /home/{{ ansible_user }}/adguard/conf
-            - path: /home/{{ ansible_user }}/adguard/work
-            - path: /home/{{ ansible_user }}/compose
-            - path: /home/{{ ansible_user }}/duplicati/backups
-            - path: /home/{{ ansible_user }}/duplicati/config
-            - path: /home/{{ ansible_user }}/duplicati/source
-            - path: /home/{{ ansible_user }}/nginx/data
-            - path: /home/{{ ansible_user }}/nginx/letsencrypt
-              mode: "0744"
-            - path: /home/{{ ansible_user }}/syncthing/config
-            - path: /home/{{ ansible_user }}/syncthing/data
-
-        - name: Copy AdGuardHome configuration
-          ansible.builtin.template:
-            src: ./AdGuardHome.yaml.j2
-            dest: /home/{{ ansible_user }}/adguard/conf/AdGuardHome.yaml
-            mode: "0666"
-            owner: "{{ ansible_user }}"
-            group: "{{ ansible_user }}"
-
-        - name: Deploy Docker Compose configuration
-          ansible.builtin.copy:
-            src: ./docker-compose.yaml
-            dest: /home/{{ ansible_user }}/compose/docker-compose.yaml
-            mode: "0666"
-            owner: "{{ ansible_user }}"
-            group: "{{ ansible_user }}"
-          notify: Restart Docker containers
-
     - name: Docker setup
-      tags: docker
+      tags: docker_compose
       block:
         - name: Install Python dependencies for Docker management
           ansible.builtin.apt:
@@ -127,13 +87,15 @@
             name: dnsmasq
             state: absent
 
+        - name: Deploy Docker Compose configuration
+          ansible.builtin.copy:
+            src: ./docker-compose.yaml
+            dest: /home/{{ ansible_user }}/docker-compose.yaml
+            mode: "0666"
+            owner: "{{ ansible_user }}"
+            group: "{{ ansible_user }}"
+
         - name: Run Docker Compose to launch services
           community.docker.docker_compose_v2:
-            project_src: /home/{{ ansible_user }}/compose
+            project_src: /home/{{ ansible_user }}
             state: present
-
-  handlers:
-    - name: Restart Docker containers
-      ansible.builtin.service:
-        name: docker
-        state: restarted
