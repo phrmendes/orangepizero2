@@ -6,25 +6,25 @@
     utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = {
-    utils,
-    nixpkgs,
-    ...
-  }:
+  outputs =
+    {
+      utils,
+      nixpkgs,
+      ...
+    }:
     utils.lib.eachDefaultSystem (
-      system: let
+      system:
+      let
         pkgs = import nixpkgs {
           inherit system;
           config.allowUnfree = true;
         };
-      in {
-        devShells.default = with pkgs;
+      in
+      {
+        devShells.default =
+          with pkgs;
           mkShell {
-            packages = [
-              ansible
-              apacheHttpd
-              bitwarden-cli
-            ];
+            packages = [ ansible ];
           };
       }
     );
