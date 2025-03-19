@@ -7,4 +7,4 @@ Easy SSL in homelab: <https://notthebe.ee/blog/easy-ssl-in-homelab-dns01/>
 
 Cloudflare example:
 
-![Example](./cloudflare.png) 
+![Example](./cloudflare.png)
