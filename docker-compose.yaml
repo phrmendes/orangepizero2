@@ -36,26 +36,9 @@ services:
       - 22000:22000
       - 21027:21027/udp
 
-  duplicati:
-    image: linuxserver/duplicati:latest
-    container_name: duplicati
-    restart: always
-    environment:
-      - TZ=America/Sao_Paulo
-      - SETTINGS_ENCRYPTION_KEY="${DUPLICATI_SETTINGS_ENCRYPTION_KEY}"
-      - DUPLICATI__WEBSERVICE_PASSWORD="${DUPLICATI_WEBSERVICE_PASSWORD}"
-    volumes:
-      - duplicati_config:/config
-      - duplicati_backups:/backups
-      - duplicati_source:/source
-      - syncthing_data:/data/syncthing
-
 volumes:
   adguardhome_conf:
   adguardhome_work:
-  duplicati_backups:
-  duplicati_config:
-  duplicati_source:
   nginx_data:
   nginx_letsencrypt:
   syncthing_config:
