@@ -96,6 +96,9 @@
             group: "{{ ansible_user }}"
 
         - name: Run Docker Compose to launch services
+          environment:
+            DUPLICATI_SETTINGS_ENCRYPTION_KEY: "{{ duplicati_password }}"
+            DUPLICATI_WEBSERVICE_PASSWORD: "{{ duplicati_encryption_password }}"
           community.docker.docker_compose_v2:
             project_src: /home/{{ ansible_user }}
             state: present

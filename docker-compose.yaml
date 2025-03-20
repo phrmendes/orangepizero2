@@ -42,6 +42,8 @@ services:
     restart: always
     environment:
       - TZ=America/Sao_Paulo
+      - SETTINGS_ENCRYPTION_KEY="${DUPLICATI_SETTINGS_ENCRYPTION_KEY}"
+      - DUPLICATI__WEBSERVICE_PASSWORD="${DUPLICATI_WEBSERVICE_PASSWORD}"
     volumes:
       - duplicati_config:/config
       - duplicati_backups:/backups

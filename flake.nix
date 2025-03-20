@@ -24,7 +24,10 @@
         devShells.default =
           with pkgs;
           mkShell {
-            packages = [ ansible ];
+            packages = [
+              just
+              ansible
+            ];
           };
       }
     );

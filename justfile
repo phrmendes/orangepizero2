@@ -10,6 +10,4 @@ run:
 	@ansible-playbook --inventory inventory.ini playbook.yaml
 
 clean:
-	@rm -rf .roles
-
-.PHONY: install vault run clean
+    @rm -rf .roles
