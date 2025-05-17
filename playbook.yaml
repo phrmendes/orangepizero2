@@ -17,10 +17,14 @@
         docker_users:
           - "{{ ansible_user }}"
 
-    - role: artis3n.tailscale
+    - role: artis3n.tailscale.machine
       tags: tailscale
       vars:
+        tailscale_tags: ["main"]
+        tailscale_oauth_ephemeral: false
+        tailscale_oauth_preauthorized: true
         tailscale_authkey: "{{ ts_authkey }}"
+        tailscale_args: "--reset"
 
   tasks:
     - name: Add user tool configurations
@@ -96,6 +100,9 @@
             group: "{{ ansible_user }}"
 
         - name: Run Docker Compose to launch services
+          environment:
+            DUPLICATI_SETTINGS_ENCRYPTION_KEY: "{{ duplicati_settings_encryption_key }}"
+            DUPLICATI_WEBSERVICE_PASSWORD: "{{ duplicati_webservice_password }}"
           community.docker.docker_compose_v2:
             project_src: /home/{{ ansible_user }}
             state: present
