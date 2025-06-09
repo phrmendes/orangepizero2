@@ -11,8 +11,8 @@ update_requirements:
 open_vault:
 	@ansible-vault edit secrets.yaml
 
-run tags="":
-	@ansible-playbook --inventory inventory.ini playbook.yaml {{tags}}
+run args="":
+	@ansible-playbook --inventory inventory.ini playbook.yaml {{args}}
 
 clean:
     @rm -rf .roles

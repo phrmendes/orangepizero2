@@ -1,18 +1,38 @@
 ---
 services:
-  nginxproxymanager:
-    image: jc21/nginx-proxy-manager:latest
-    container_name: nginxproxymanager
+  tsdproxy:
+    image: docker.io/almeidapaulopt/tsdproxy:1
+    container_name: tsdproxy
     restart: unless-stopped
     volumes:
-      - nginx_data:/data
-      - nginx_letsencrypt:/etc/letsencrypt
+      - tsdproxy_data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./tsdproxy.yaml:/config/tsdproxy.yaml
     ports:
-      - 80:80
-      - 81:81
-      - 443:443
+      - 8080:8080
+    labels:
+      - tsdproxy.enable=true
+      - tsdproxy.name=dashboard
+      - tsdproxy.dash.icon=si/tailscale
+      - diun.enable=true
+  diun:
+    image: docker.io/crazymax/diun:latest
+    command: serve
+    container_name: diun
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ}
+      - DIUN_WATCH_WORKERS=20
+      - DIUN_WATCH_SCHEDULE=0 * * * */1
+      - DIUN_WATCH_JITTER=30s
+      - DIUN_PROVIDERS_DOCKER=true
+    volumes:
+      - diun_data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    labels:
+      - diun.enable=true
   adguardhome:
-    image: adguard/adguardhome:latest
+    image: docker.io/adguard/adguardhome:latest
     container_name: adguardhome
     restart: unless-stopped
     volumes:
@@ -21,39 +41,67 @@ services:
     ports:
       - 53:53
       - 53:53/udp
+      - 80:80
+      - 3000:3000
+    labels:
+      - tsdproxy.enable=true
+      - tsdproxy.name=adguardhome
+      - tsdproxy.container_port=80
+      - tsdproxy.dash.icon=si/adguard
+      - diun.enable=true
   syncthing:
-    image: linuxserver/syncthing:latest
+    image: docker.io/linuxserver/syncthing:latest
     container_name: syncthing
     restart: unless-stopped
     environment:
-      - TZ=America/Sao_Paulo
+      - PGID=${PGID}
+      - PUID=${PUID}
+      - TZ=${TZ}
     volumes:
       - syncthing_config:/config
       - syncthing_data:/data
     ports:
-      - 22000:22000
       - 21027:21027/udp
+      - 22000:22000
+      - 22000:22000/udp
+      - 8384:8384
+    labels:
+      - tsdproxy.enable=true
+      - tsdproxy.name=syncthing
+      - tsdproxy.container_port=8384
+      - tsdproxy.dash.icon=si/syncthing
+      - diun.enable=true
   duplicati:
-    image: linuxserver/duplicati:latest
+    image: docker.io/linuxserver/duplicati:latest
     container_name: duplicati
     restart: unless-stopped
     environment:
-      - TZ=America/Sao_Paulo
-      - SETTINGS_ENCRYPTION_KEY=${DUPLICATI_SETTINGS_ENCRYPTION_KEY}
+      - PGID=${PGID}
+      - PUID=${PUID}
+      - TZ=${TZ}
       - DUPLICATI__WEBSERVICE_PASSWORD=${DUPLICATI_WEBSERVICE_PASSWORD}
+      - SETTINGS_ENCRYPTION_KEY=${DUPLICATI_SETTINGS_ENCRYPTION_KEY}
     volumes:
       - duplicati_config:/config
       - duplicati_backups:/backups
       - duplicati_source:/source
-      - syncthing_data:/data/syncthing
+      - syncthing_data:/syncthing
+    ports:
+      - 8200:8200
+    labels:
+      - tsdproxy.enable=true
+      - tsdproxy.name=duplicati
+      - tsdproxy.container_port=8384
+      - tsdproxy.dash.icon=si/duplicati
+      - diun.enable=true
 
 volumes:
   adguardhome_conf:
   adguardhome_work:
+  diun_data:
   duplicati_backups:
   duplicati_config:
   duplicati_source:
-  nginx_data:
-  nginx_letsencrypt:
   syncthing_config:
   syncthing_data:
+  tsdproxy_data:

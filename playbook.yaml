@@ -20,10 +20,7 @@
     - role: artis3n.tailscale.machine
       tags: tailscale
       vars:
-        tailscale_tags: ["main"]
-        tailscale_oauth_ephemeral: false
-        tailscale_oauth_preauthorized: true
-        tailscale_authkey: "{{ ts_authkey }}"
+        tailscale_authkey: "{{ ts_orangepizero2_authkey }}"
         tailscale_args: "--reset"
 
   tasks:
@@ -32,7 +29,7 @@
       ansible.builtin.copy:
         src: "{{ item.src }}"
         dest: "{{ item.dest }}"
-        mode: "0644"
+        mode: "0666"
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
       loop:
@@ -76,20 +73,31 @@
             proto: udp
           loop: [53, 21027]
 
+    - name: Install Python dependencies for Docker management
+      ansible.builtin.apt:
+        name:
+          - python3-requests
+          - python3-yaml
+        state: present
+
     - name: Docker setup
       tags: docker_compose
       block:
-        - name: Install Python dependencies for Docker management
-          ansible.builtin.apt:
-            name:
-              - python3-requests
-              - python3-yaml
-            state: present
+        - name: Create .env file
+          ansible.builtin.template:
+            src: ./templates/env.j2
+            dest: /home/{{ ansible_user }}/.env
+            mode: "0666"
+            owner: "{{ ansible_user }}"
+            group: "{{ ansible_user }}"
 
-        - name: Remove dnsmasq to prevent conflicts
-          ansible.builtin.apt:
-            name: dnsmasq
-            state: absent
+        - name: Deploy TSDProxy configuration
+          ansible.builtin.template:
+            src: ./templates/tsdproxy.yaml.j2
+            dest: /home/{{ ansible_user }}/tsdproxy.yaml
+            mode: "0666"
+            owner: "{{ ansible_user }}"
+            group: "{{ ansible_user }}"
 
         - name: Deploy Docker Compose configuration
           ansible.builtin.copy:
@@ -100,9 +108,6 @@
             group: "{{ ansible_user }}"
 
         - name: Run Docker Compose to launch services
-          environment:
-            DUPLICATI_SETTINGS_ENCRYPTION_KEY: "{{ duplicati_settings_encryption_key }}"
-            DUPLICATI_WEBSERVICE_PASSWORD: "{{ duplicati_webservice_password }}"
           community.docker.docker_compose_v2:
             project_src: /home/{{ ansible_user }}
             state: present
