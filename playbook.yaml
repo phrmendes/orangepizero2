@@ -23,13 +23,24 @@
         tailscale_authkey: "{{ ts_orangepizero2_authkey }}"
         tailscale_args: "--reset"
 
+  handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: true
+      notify: Restart docker-compose service
+
+    - name: Restart docker-compose service
+      ansible.builtin.systemd:
+        name: docker-compose
+        state: restarted
+
   tasks:
     - name: Add user tool configurations
       tags: tools
       ansible.builtin.copy:
         src: "{{ item.src }}"
         dest: "{{ item.dest }}"
-        mode: "0666"
+        mode: "0644"
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
       loop:
@@ -83,11 +94,25 @@
     - name: Docker setup
       tags: docker_compose
       block:
+        - name: Ensure systemd service directory exists
+          ansible.builtin.file:
+            path: /etc/systemd/system
+            state: directory
+            mode: "0755"
+
+        - name: Deploy Docker Compose systemd service
+          ansible.builtin.copy:
+            src: ./docker-compose.service
+            dest: /etc/systemd/system/docker-compose.service
+            mode: "0644"
+            owner: root
+            group: root
+
         - name: Create .env file
           ansible.builtin.template:
             src: ./templates/env.j2
             dest: /home/{{ ansible_user }}/.env
-            mode: "0666"
+            mode: "0644"
             owner: "{{ ansible_user }}"
             group: "{{ ansible_user }}"
 
@@ -95,7 +120,7 @@
           ansible.builtin.template:
             src: ./templates/tsdproxy.yaml.j2
             dest: /home/{{ ansible_user }}/tsdproxy.yaml
-            mode: "0666"
+            mode: "0644"
             owner: "{{ ansible_user }}"
             group: "{{ ansible_user }}"
 
@@ -103,11 +128,13 @@
           ansible.builtin.copy:
             src: ./docker-compose.yaml
             dest: /home/{{ ansible_user }}/docker-compose.yaml
-            mode: "0666"
+            mode: "0644"
             owner: "{{ ansible_user }}"
             group: "{{ ansible_user }}"
+          notify: Reload systemd
 
-        - name: Run Docker Compose to launch services
-          community.docker.docker_compose_v2:
-            project_src: /home/{{ ansible_user }}
-            state: present
+        - name: Enable and start docker-compose service
+          ansible.builtin.systemd:
+            name: docker-compose
+            enabled: true
+            state: started
