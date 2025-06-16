@@ -1,0 +1,31 @@
+services:
+  duplicati:
+    image: docker.io/linuxserver/duplicati:latest
+    container_name: duplicati
+    restart: always
+    environment:
+      - PGID=${PGID}
+      - PUID=${PUID}
+      - TZ=${TZ}
+      - DUPLICATI__WEBSERVICE_PASSWORD=${DUPLICATI_WEBSERVICE_PASSWORD}
+      - SETTINGS_ENCRYPTION_KEY=${DUPLICATI_SETTINGS_ENCRYPTION_KEY}
+    volumes:
+      - duplicati_config:/config
+      - duplicati_backups:/backups
+      - duplicati_source:/source
+      - syncthing_data:/syncthing:ro
+      - postgres_dumps:/postgres:ro
+    ports:
+      - 8200:8200
+    labels:
+      - diun.enable=true
+      - tsdproxy.enable=true
+      - tsdproxy.name=duplicati
+      - tsdproxy.container_port=8384
+      - tsdproxy.dash.label=Duplicati
+      - tsdproxy.dash.icon=sh/duplicati
+
+volumes:
+  duplicati_backups:
+  duplicati_config:
+  duplicati_source:

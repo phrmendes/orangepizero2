@@ -1,0 +1,21 @@
+services:
+  tsdproxy:
+    image: docker.io/almeidapaulopt/tsdproxy:1
+    container_name: tsdproxy
+    restart: always
+    volumes:
+      - tsdproxy_data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./tsdproxy-config.yaml:/config/tsdproxy.yaml
+    ports:
+      - 8081:8080
+    labels:
+      - diun.enable=true
+      - tsdproxy.enable=true
+      - tsdproxy.name=dashboard
+      - tsdproxy.container_port=8080
+      - tsdproxy.dash.label=Dashboard
+      - tsdproxy.dash.icon=sh/tailscale
+
+volumes:
+  tsdproxy_data:

@@ -5,6 +5,10 @@
   vars:
     ansible_user: phrmendes
     ansible_become_user: root
+    postgres_user: admin
+    databases:
+      - miniflux
+      - atuin
   vars_files:
     - secrets.yaml
 
@@ -29,8 +33,14 @@
   handlers:
     - name: Restart Docker Compose
       community.docker.docker_compose_v2:
-        project_src: /home/{{ ansible_user }}
+        project_src: /home/{{ ansible_user }}/compose
         state: present
+
+    - name: Restart Postgres container
+      community.docker.docker_compose_v2:
+        services: [postgres]
+        project_src: /home/{{ ansible_user }}/compose
+        state: restarted
 
   tasks:
     - name: Add user tool configurations
@@ -60,8 +70,10 @@
             default: "{{ item.policy }}"
             direction: "{{ item.direction }}"
           loop:
-            - { policy: deny, direction: incoming }
-            - { policy: allow, direction: outgoing }
+            - policy: deny
+              direction: incoming
+            - policy: allow
+              direction: outgoing
 
         - name: Allow OpenSSH for remote access
           community.general.ufw:
@@ -106,10 +118,19 @@
             owner: root
             group: root
 
+        - name: Deploy Docker Compose configuration
+          ansible.builtin.copy:
+            src: ./compose
+            dest: /home/{{ ansible_user }}
+            mode: "0644"
+            owner: "{{ ansible_user }}"
+            group: "{{ ansible_user }}"
+          notify: Restart Docker Compose
+
         - name: Create .env file
           ansible.builtin.template:
             src: ./templates/env.j2
-            dest: /home/{{ ansible_user }}/.env
+            dest: /home/{{ ansible_user }}/compose/.env
             mode: "0644"
             owner: "{{ ansible_user }}"
             group: "{{ ansible_user }}"
@@ -117,19 +138,19 @@
         - name: Deploy TSDProxy configuration
           ansible.builtin.template:
             src: ./templates/tsdproxy.yaml.j2
-            dest: /home/{{ ansible_user }}/tsdproxy.yaml
+            dest: /home/{{ ansible_user }}/compose/tsdproxy-config.yaml
             mode: "0644"
             owner: "{{ ansible_user }}"
             group: "{{ ansible_user }}"
 
-        - name: Deploy Docker Compose configuration
-          ansible.builtin.copy:
-            src: ./docker-compose.yaml
-            dest: /home/{{ ansible_user }}/docker-compose.yaml
+        - name: Deploy Postgres init.sql for database creation
+          ansible.builtin.template:
+            src: ./templates/init.sql.j2
+            dest: /home/{{ ansible_user }}/compose/init.sql
             mode: "0644"
             owner: "{{ ansible_user }}"
             group: "{{ ansible_user }}"
-          notify: Restart Docker Compose
+          notify: Restart Postgres container
 
         - name: Enable and start docker-compose service
           ansible.builtin.systemd:

@@ -1,0 +1,23 @@
+services:
+  miniflux:
+    image: docker.io/miniflux/miniflux:latest
+    container_name: miniflux
+    restart: always
+    ports:
+      - 8082:8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/miniflux?sslmode=disable
+      - RUN_MIGRATIONS=1
+      - CREATE_ADMIN=1
+      - ADMIN_USERNAME=phrmendes
+      - ADMIN_PASSWORD=${MINIFLUX_ADMIN_PASSWORD}
+    labels:
+      - diun.enable=true
+      - tsdproxy.enable=true
+      - tsdproxy.name=miniflux
+      - tsdproxy.container_port=8080
+      - tsdproxy.dash.label=Miniflux
+      - tsdproxy.dash.icon=sh/miniflux

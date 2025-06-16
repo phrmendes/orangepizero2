@@ -1,0 +1,3 @@
+{% for db in databases %}
+CREATE DATABASE "{{ db }}" WITH OWNER = '{{ postgres_user | default("postgres") }}';
+{% endfor %}

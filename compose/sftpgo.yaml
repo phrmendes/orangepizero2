@@ -1,0 +1,21 @@
+services:
+  sftpgo:
+    image: docker.io/drakkan/sftpgo:latest
+    container_name: sftpgo
+    restart: always
+    volumes:
+      - sftpgo_data:/var/lib/sftpgo
+      - syncthing_data:/syncthing
+    ports:
+      - 8080:8080
+      - 2022:2022
+    labels:
+      - diun.enable=true
+      - tsdproxy.enable=true
+      - tsdproxy.name=sftpgo
+      - tsdproxy.container_port=8080
+      - tsdproxy.dash.label=SFTPGo
+      - tsdproxy.dash.icon=sh/sftpgo
+
+volumes:
+  sftpgo_data:

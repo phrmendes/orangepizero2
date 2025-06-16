@@ -1,0 +1,13 @@
+services:
+  adminer:
+    image: docker.io/adminer:latest
+    restart: always
+    ports:
+      - 8083:8080
+    labels:
+      - diun.enable=true
+      - tsdproxy.enable=true
+      - tsdproxy.name=adminer
+      - tsdproxy.container_port=8080
+      - tsdproxy.dash.label=Adminer
+      - tsdproxy.dash.icon=sh/adminer

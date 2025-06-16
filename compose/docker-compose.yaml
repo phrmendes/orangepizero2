@@ -1,0 +1,13 @@
+---
+include:
+  - adguardhome.yaml
+  - adminer.yaml
+  - atuin.yaml
+  - beszel.yaml
+  - diun.yaml
+  - duplicati.yaml
+  - miniflux.yaml
+  - postgres.yaml
+  - sftpgo.yaml
+  - syncthing.yaml
+  - tsdproxy.yaml
