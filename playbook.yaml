@@ -20,19 +20,17 @@
     - role: artis3n.tailscale.machine
       tags: tailscale
       vars:
+        tailscale_tags: ["main"]
+        tailscale_oauth_ephemeral: false
+        tailscale_oauth_preauthorized: true
         tailscale_authkey: "{{ ts_orangepizero2_authkey }}"
-        tailscale_args: "--reset"
+        tailscale_args: "--reset --advertise-exit-node"
 
   handlers:
-    - name: Reload systemd
-      ansible.builtin.systemd:
-        daemon_reload: true
-      notify: Restart docker-compose service
-
-    - name: Restart docker-compose service
-      ansible.builtin.systemd:
-        name: docker-compose
-        state: restarted
+    - name: Restart Docker Compose
+      community.docker.docker_compose_v2:
+        project_src: /home/{{ ansible_user }}
+        state: present
 
   tasks:
     - name: Add user tool configurations
@@ -75,7 +73,7 @@
             rule: allow
             port: "{{ item }}"
             proto: tcp
-          loop: [53, 80, 8080, 22000]
+          loop: [53, 80, 8080, 8081, 22000, 2022]
 
         - name: Allow necessary UDP ports
           community.general.ufw:
@@ -131,7 +129,7 @@
             mode: "0644"
             owner: "{{ ansible_user }}"
             group: "{{ ansible_user }}"
-          notify: Reload systemd
+          notify: Restart Docker Compose
 
         - name: Enable and start docker-compose service
           ansible.builtin.systemd:
