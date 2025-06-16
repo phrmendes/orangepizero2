@@ -20,7 +20,7 @@ services:
     image: docker.io/crazymax/diun:latest
     command: serve
     container_name: diun
-    restart: unless-stopped
+    restart: always
     environment:
       - TZ=${TZ}
       - DIUN_WATCH_WORKERS=20
@@ -35,7 +35,7 @@ services:
   adguardhome:
     image: docker.io/adguard/adguardhome:latest
     container_name: adguardhome
-    restart: unless-stopped
+    restart: always
     volumes:
       - adguardhome_conf:/opt/adguardhome/conf
       - adguardhome_work:/opt/adguardhome/work
@@ -54,7 +54,7 @@ services:
   syncthing:
     image: docker.io/linuxserver/syncthing:latest
     container_name: syncthing
-    restart: unless-stopped
+    restart: always
     environment:
       - PGID=${PGID}
       - PUID=${PUID}
@@ -77,7 +77,7 @@ services:
   duplicati:
     image: docker.io/linuxserver/duplicati:latest
     container_name: duplicati
-    restart: unless-stopped
+    restart: always
     environment:
       - PGID=${PGID}
       - PUID=${PUID}
@@ -101,7 +101,7 @@ services:
   atuin:
     image: ghcr.io/atuinsh/atuin:latest
     container_name: atuin
-    restart: unless-stopped
+    restart: always
     command: server start
     volumes:
       - atuin_conf:/config
@@ -118,15 +118,32 @@ services:
       - tsdproxy.container_port=8888
       - tsdproxy.dash.visible=false
   postgresql:
-    image: postgres:14
+    image: docker.io/postgres:14
     container_name: postgres
-    restart: unless-stopped
+    restart: always
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     environment:
       POSTGRES_USER: ${ATUIN_DB_USERNAME}
       POSTGRES_PASSWORD: ${ATUIN_DB_PASSWORD}
       POSTGRES_DB: ${ATUIN_DB_NAME}
+  sftpgo:
+    image: docker.io/drakkan/sftpgo:latest
+    container_name: sftpgo
+    restart: always
+    volumes:
+      - sftpgo_data:/var/lib/sftpgo
+      - syncthing_data:/syncthing
+    ports:
+      - 8081:8080
+      - 2022:2022
+    labels:
+      - diun.enable=true
+      - tsdproxy.enable=true
+      - tsdproxy.name=sftpgo
+      - tsdproxy.container_port=8081
+      - tsdproxy.dash.label=SFTPGo
+      - tsdproxy.dash.icon=si/files
 
 volumes:
   adguardhome_conf:
@@ -140,3 +157,4 @@ volumes:
   syncthing_config:
   syncthing_data:
   tsdproxy_data:
+  sftpgo_data:
