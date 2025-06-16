@@ -5,10 +5,6 @@
   vars:
     ansible_user: phrmendes
     ansible_become_user: root
-    postgres_user: admin
-    databases:
-      - miniflux
-      - atuin
   vars_files:
     - secrets.yaml
 
@@ -35,12 +31,6 @@
       community.docker.docker_compose_v2:
         project_src: /home/{{ ansible_user }}/compose
         state: present
-
-    - name: Restart Postgres container
-      community.docker.docker_compose_v2:
-        services: [postgres]
-        project_src: /home/{{ ansible_user }}/compose
-        state: restarted
 
   tasks:
     - name: Add user tool configurations
@@ -142,15 +132,6 @@
             mode: "0644"
             owner: "{{ ansible_user }}"
             group: "{{ ansible_user }}"
-
-        - name: Deploy Postgres init.sql for database creation
-          ansible.builtin.template:
-            src: ./templates/init.sql.j2
-            dest: /home/{{ ansible_user }}/compose/init.sql
-            mode: "0644"
-            owner: "{{ ansible_user }}"
-            group: "{{ ansible_user }}"
-          notify: Restart Postgres container
 
         - name: Enable and start docker-compose service
           ansible.builtin.systemd:

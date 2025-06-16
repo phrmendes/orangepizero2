@@ -10,7 +10,6 @@ services:
       - 8080:8080
       - 2022:2022
     labels:
-      - diun.enable=true
       - tsdproxy.enable=true
       - tsdproxy.name=sftpgo
       - tsdproxy.container_port=8080

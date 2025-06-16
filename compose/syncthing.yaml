@@ -16,7 +16,6 @@ services:
       - 22000:22000/udp
       - 8384:8384
     labels:
-      - diun.enable=true
       - tsdproxy.enable=true
       - tsdproxy.name=syncthing
       - tsdproxy.container_port=8384

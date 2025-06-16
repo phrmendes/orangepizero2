@@ -14,11 +14,9 @@ services:
       - duplicati_backups:/backups
       - duplicati_source:/source
       - syncthing_data:/syncthing:ro
-      - postgres_dumps:/postgres:ro
     ports:
       - 8200:8200
     labels:
-      - diun.enable=true
       - tsdproxy.enable=true
       - tsdproxy.name=duplicati
       - tsdproxy.container_port=8384

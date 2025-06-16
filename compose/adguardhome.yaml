@@ -12,7 +12,6 @@ services:
       - 80:80
       - 3000:3000
     labels:
-      - diun.enable=true
       - tsdproxy.enable=true
       - tsdproxy.name=adguardhome
       - tsdproxy.container_port=80
